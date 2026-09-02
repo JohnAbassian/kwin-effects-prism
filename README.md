@@ -1,5 +1,8 @@
 # Prism
 
+![Prism](prism_1.gif)
+![Prism](prism_2.gif)
+
 A Plasma 6 **Wayland** KWin effect that rotates a **prism** of the current pager row when you switch desktops left or right (including wrap).
 
 I loved Compiz/Beryl/Fusion. When GNOME moved to Shell and KDE to Plasma, Compiz broke, and I left both. Nearly two decades later, I think KDE made the right call: compositing belongs in the window manager, not in a plugin stack on X11. [That argument is laid out well here.](https://www.reddit.com/r/linux/comments/75hxp6/why_did_compiz_die/) What I still missed was the cube: windows floating off the faces, the hull turning when you change desktops, the Compiz feel. Plasma’s built-in Cube never quite got there. So I made Prism.
@@ -21,6 +24,8 @@ Prism keeps that hull and adds a **desktop switcher** on top — the Compiz cube
 - **Sending a window to another desktop** flies it around the prism (or between rows) instead of snapping.
 - **Configurable**: zoom-out, tilt, fling inertia, face gap, background color, etc.
 
+
+
 ## Requirements
 
 - KDE Plasma 6 / KWin
@@ -32,6 +37,8 @@ On Arch/CachyOS:
 ```sh
 sudo pacman -S qt6-quick3d
 ```
+
+
 
 ## Install
 
