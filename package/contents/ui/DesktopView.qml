@@ -62,6 +62,7 @@ Item {
 
     KWinComponents.DesktopBackground {
         anchors.fill: parent
+        opacity: effect.desktopOpacity
         activity: KWinComponents.Workspace.currentActivity
         desktop: desktopView.desktop
         output: targetScreen

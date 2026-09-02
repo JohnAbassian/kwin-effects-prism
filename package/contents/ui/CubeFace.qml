@@ -24,8 +24,8 @@ Model {
         PrincipledMaterial {
             lighting: PrincipledMaterial.NoLighting
             cullMode: Material.NoCulling
-            alphaMode: PrincipledMaterial.Opaque
-            depthDrawMode: Material.AlwaysDepthDraw
+            alphaMode: effect.desktopOpacity >= 0.999 ? PrincipledMaterial.Opaque : PrincipledMaterial.Blend
+            depthDrawMode: effect.desktopOpacity >= 0.999 ? Material.AlwaysDepthDraw : Material.OpaqueOnlyDepthDraw
             baseColor: "#ffffff"
             baseColorMap: Texture {
                 sourceItem: DesktopView {

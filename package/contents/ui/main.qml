@@ -29,6 +29,15 @@ KWinComponents.SceneEffect {
         }
         return Math.min(1, n);
     }
+    readonly property bool desktopOpacityPreviewOnly: effect.isTruthy(effect.configuration ? effect.configuration.DesktopOpacityPreviewOnly : false)
+    readonly property real desktopOpacity: {
+        const n = effect.finiteNumber(effect.configuration ? effect.configuration.DesktopOpacity : NaN, 100);
+        const configured = Math.max(0, Math.min(1, n / 100));
+        if (effect.desktopOpacityPreviewOnly && !effect.interactive) {
+            return 1;
+        }
+        return configured;
+    }
     readonly property int gridWidth: Math.max(1, KWinComponents.Workspace.desktopGridWidth || 1)
     readonly property int gridHeight: Math.max(1, KWinComponents.Workspace.desktopGridHeight || 1)
 

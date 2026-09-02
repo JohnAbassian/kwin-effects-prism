@@ -20,6 +20,14 @@
             <min>0</min>
             <max>300</max>
         </entry>
+        <entry name="DesktopOpacity" type="Int">
+            <default>100</default>
+            <min>0</min>
+            <max>100</max>
+        </entry>
+        <entry name="DesktopOpacityPreviewOnly" type="Bool">
+            <default>false</default>
+        </entry>
         <entry name="DistanceFactor" type="Double">
             <default>1.0</default>
             <min>1.0</min>
