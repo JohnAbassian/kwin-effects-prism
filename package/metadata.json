@@ -1,0 +1,22 @@
+{
+    "KPackageStructure": "KWin/Effect",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Name": "John Abassian <john@abassian.net>"
+            }
+        ],
+        "Category": "Virtual Desktop Switching Animation",
+        "Description": "Rotate a prism of the current pager row when switching virtual desktops",
+        "EnabledByDefault": false,
+        "Id": "prism",
+        "License": "GPL",
+        "Name": "Prism"
+    },
+    "X-KDE-ConfigModule": "kcm_kwin4_genericscripted",
+    "X-KDE-Ordering": 70,
+    "X-Plasma-API": "declarativescript",
+    "org.kde.kwin.effect": {
+        "exclusiveGroup": "desktop-animations"
+    }
+}

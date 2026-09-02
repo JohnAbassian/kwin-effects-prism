@@ -1,0 +1,16 @@
+{
+    "KPackageStructure": "KWin/Script",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "john@abassian.net",
+                "Name": "John Abassian"
+            }
+        ],
+        "Description": "Registers Meta+C to zoom out Prism",
+        "Id": "prism-toggle",
+        "License": "GPL",
+        "Name": "Prism Toggle"
+    },
+    "X-Plasma-API": "javascript"
+}

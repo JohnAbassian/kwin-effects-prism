@@ -1,5 +1,6 @@
 /*
     SPDX-FileCopyrightText: 2022 Vlad Zahorodnii <vlad.zahorodnii@kde.org>
+    SPDX-FileCopyrightText: 2026 John Abassian <john@abassian.net>
 
     SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
 */
@@ -11,17 +12,26 @@ Model {
     id: face
 
     required property QtObject desktop
-    required property int index
     required property size faceSize
+    property QtObject leftDesktop: null
+    property QtObject rightDesktop: null
 
+    pickable: true
+    castsShadows: false
+    receivesShadows: false
     source: "#Rectangle"
     materials: [
-        DefaultMaterial {
+        PrincipledMaterial {
+            lighting: PrincipledMaterial.NoLighting
             cullMode: Material.NoCulling
-            lighting: DefaultMaterial.NoLighting
-            diffuseMap: Texture {
+            alphaMode: PrincipledMaterial.Opaque
+            depthDrawMode: Material.AlwaysDepthDraw
+            baseColor: "#ffffff"
+            baseColorMap: Texture {
                 sourceItem: DesktopView {
                     desktop: face.desktop
+                    leftDesktop: face.leftDesktop
+                    rightDesktop: face.rightDesktop
                     width: faceSize.width
                     height: faceSize.height
                 }

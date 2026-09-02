@@ -1,0 +1,12 @@
+This package is licensed under the GNU General Public License version 2,
+or the GNU General Public License version 3, or (at KDE's option) any
+later version accepted by the KDE Free Qt Foundation.
+
+    SPDX-FileCopyrightText: 2026 John Abassian <john@abassian.net>
+    SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
+
+Cube geometry and scene structure are adapted from the KDE Plasma
+desktop Cube effect:
+
+    SPDX-FileCopyrightText: 2022 Vlad Zahorodnii <vlad.zahorodnii@kde.org>
+    SPDX-License-Identifier: GPL-2.0-only OR GPL-3.0-only OR LicenseRef-KDE-Accepted-GPL
