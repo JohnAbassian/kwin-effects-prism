@@ -65,6 +65,111 @@ function screenY(window, screen) {
     return window.y - screen.geometry.y;
 }
 
+function copyRect(r) {
+    if (!r) {
+        return null;
+    }
+    return {
+        x: r.x,
+        y: r.y,
+        width: r.width,
+        height: r.height
+    };
+}
+
+function captureSnap(window) {
+    if (!window) {
+        return null;
+    }
+    const tile = window.tile || null;
+    return {
+        x: window.x,
+        y: window.y,
+        width: window.width,
+        height: window.height,
+        rel: tile ? copyRect(tile.relativeGeometry) : null,
+        hasTile: !!tile
+    };
+}
+
+function geometryMatches(window, snap, slop) {
+    if (!window || !snap) {
+        return false;
+    }
+    const pad = slop > 0 ? slop : 2;
+    return Math.abs(window.x - snap.x) <= pad
+        && Math.abs(window.y - snap.y) <= pad
+        && Math.abs(window.width - snap.width) <= pad
+        && Math.abs(window.height - snap.height) <= pad;
+}
+
+function sameDesktopList(a, b) {
+    if (!a || !b) {
+        return !a && !b;
+    }
+    if (a.length !== b.length) {
+        return false;
+    }
+    for (let i = 0; i < a.length; ++i) {
+        if (!sameDesktop(a[i], b[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function rectIoU(a, b) {
+    if (!a || !b || !(a.width > 0) || !(a.height > 0) || !(b.width > 0) || !(b.height > 0)) {
+        return 0;
+    }
+    const ix = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+    const iy = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+    const inter = ix * iy;
+    const union = a.width * a.height + b.width * b.height - inter;
+    return union > 0 ? inter / union : 0;
+}
+
+function collectLeafTiles(tile, out) {
+    if (!tile) {
+        return;
+    }
+    const kids = tile.tiles;
+    if (!kids || kids.length === 0) {
+        if (!tile.isLayout) {
+            out.push(tile);
+        }
+        return;
+    }
+    for (let i = 0; i < kids.length; ++i) {
+        collectLeafTiles(kids[i], out);
+    }
+}
+
+function findMatchingTile(root, snap) {
+    if (!root || !snap || !snap.rel) {
+        return null;
+    }
+    const leaves = [];
+    collectLeafTiles(root, leaves);
+    let best = null;
+    let bestScore = 0;
+    for (let i = 0; i < leaves.length; ++i) {
+        const leaf = leaves[i];
+        if (leaf === root) {
+            continue;
+        }
+        const score = rectIoU(snap.rel, copyRect(leaf.relativeGeometry));
+        if (score > bestScore) {
+            best = leaf;
+            bestScore = score;
+        }
+    }
+    if (best && bestScore >= 0.75) {
+        return best;
+    }
+    return null;
+}
+
 function clamp01(value) {
     return Math.max(0, Math.min(1, value));
 }

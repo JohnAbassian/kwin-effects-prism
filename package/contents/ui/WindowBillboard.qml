@@ -23,6 +23,8 @@ Model {
     property real srcY: 0
     property real srcW: 1
     property real srcH: 1
+    property real clientW: 0
+    property real clientH: 0
     property bool pieceVisible: true
 
     readonly property real liftZ: {
@@ -68,8 +70,10 @@ Model {
                         wId: billboard.window ? billboard.window.internalId : ""
                         x: -billboard.srcX
                         y: -billboard.srcY
-                        width: Math.max(1, billboard.window ? billboard.window.width : 1)
-                        height: Math.max(1, billboard.window ? billboard.window.height : 1)
+                        width: Math.max(1, billboard.clientW > 0 ? billboard.clientW
+                                                                : (billboard.window ? billboard.window.width : 1))
+                        height: Math.max(1, billboard.clientH > 0 ? billboard.clientH
+                                                                 : (billboard.window ? billboard.window.height : 1))
                     }
                 }
             }

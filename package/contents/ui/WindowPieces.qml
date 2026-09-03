@@ -41,10 +41,30 @@ Node {
     readonly property bool onThis: WindowState.isOnDesktop(window, desktop)
     readonly property bool onLeft: WindowState.isOnDesktop(window, leftDesktop)
     readonly property bool onRight: WindowState.isOnDesktop(window, rightDesktop)
-    readonly property real winX: WindowState.screenX(window, targetScreen)
-    readonly property real winY: WindowState.screenY(window, targetScreen)
-    readonly property real winW: window ? window.width : 0
-    readonly property real winH: window ? window.height : 0
+    readonly property var frozenGeom: {
+        const _ = effect.flyingRev;
+        const fromEffect = effect.flightGeomOf(window);
+        if (fromEffect) {
+            return fromEffect;
+        }
+        return (flightJob && flightJob.geom) ? flightJob.geom : null;
+    }
+    readonly property real winX: {
+        if (flying && frozenGeom) {
+            return frozenGeom.x - (targetScreen ? targetScreen.geometry.x : 0);
+        }
+        return WindowState.screenX(window, targetScreen);
+    }
+    readonly property real winY: {
+        if (flying && frozenGeom) {
+            return frozenGeom.y - (targetScreen ? targetScreen.geometry.y : 0);
+        }
+        return WindowState.screenY(window, targetScreen);
+    }
+    readonly property real winW: (flying && frozenGeom && frozenGeom.width > 0) ? frozenGeom.width
+                                                                               : (window ? window.width : 0)
+    readonly property real winH: (flying && frozenGeom && frozenGeom.height > 0) ? frozenGeom.height
+                                                                                : (window ? window.height : 0)
     readonly property real overflowRight: winX + winW - screenW
     readonly property real overflowLeft: -winX
     readonly property real contentLeft: flying && flightDraw ? flightDraw.left : Math.max(winX, 0)
@@ -91,6 +111,8 @@ Node {
         srcY: pieces.nativeSrcY
         srcW: pieces.nativeSrcW
         srcH: pieces.nativeSrcH
+        clientW: pieces.winW
+        clientH: pieces.winH
     }
 
     WindowBillboard {
@@ -107,6 +129,8 @@ Node {
         srcY: pieces.contentTop - pieces.winY
         srcW: pieces.wrapFromLeftWidth
         srcH: pieces.contentBottom - pieces.contentTop
+        clientW: pieces.winW
+        clientH: pieces.winH
     }
 
     WindowBillboard {
@@ -123,5 +147,7 @@ Node {
         srcY: pieces.contentTop - pieces.winY
         srcW: pieces.wrapFromRightWidth
         srcH: pieces.contentBottom - pieces.contentTop
+        clientW: pieces.winW
+        clientH: pieces.winH
     }
 }

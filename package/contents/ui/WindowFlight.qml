@@ -27,6 +27,7 @@ Node {
     property int colSteps: 0
     property int rowSteps: 0
     property real startAt: 0
+    property var frozenGeom: null
 
     readonly property real t: {
         if (!active) {
@@ -102,7 +103,8 @@ Node {
             fromCol: flight.fromCol,
             fromRow: flight.fromRow,
             colSteps: flight.colSteps,
-            rowSteps: flight.rowSteps
+            rowSteps: flight.rowSteps,
+            geom: flight.frozenGeom
         });
     }
 
@@ -113,6 +115,7 @@ Node {
         localAnim.stop();
         active = false;
         localT = 0;
+        frozenGeom = null;
         cube.setFlight(effect.windowId(window), null);
         effect.setFlying(window, false);
     }
@@ -120,11 +123,11 @@ Node {
     function tryStart() {
         const job = effect.takeFlightFor(flight.window);
         if (job) {
-            flight.start(job.fromDesktop, job.toDesktop);
+            flight.start(job.fromDesktop, job.toDesktop, job.geom);
         }
     }
 
-    function start(fromDesktop, toDesktop) {
+    function start(fromDesktop, toDesktop, geom) {
         if (!window || !fromDesktop || !toDesktop || WindowState.sameDesktop(fromDesktop, toDesktop)) {
             return;
         }
@@ -132,6 +135,8 @@ Node {
             effect.setFlying(window, false);
             return;
         }
+        frozenGeom = geom || WindowState.captureSnap(window);
+        effect.setFlightGeom(window, frozenGeom);
         fromCol = cube.columnOf(fromDesktop);
         fromRow = cube.rowOf(fromDesktop);
         colSteps = cube.ringSteps(fromDesktop, toDesktop, !effect.interactive && effect.rotateAllTheWay);

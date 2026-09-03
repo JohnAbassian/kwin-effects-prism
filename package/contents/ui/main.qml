@@ -69,6 +69,8 @@ KWinComponents.SceneEffect {
     // flyingIds is a new object each update; flyingRev forces QML bindings
     // that call isFlying() to re-run (object mutation is not notifiable).
     property var flyingIds: ({})
+    property var flightGeoms: ({})
+    property var snapRetries: []
     property int flyingRev: 0
 
     function finiteNumber(value, fallback) {
@@ -93,12 +95,15 @@ KWinComponents.SceneEffect {
             return;
         }
         const next = Object.assign({}, effect.flyingIds);
+        const geoms = Object.assign({}, effect.flightGeoms);
         if (on) {
             next[id] = true;
         } else {
             delete next[id];
+            delete geoms[id];
         }
         effect.flyingIds = next;
+        effect.flightGeoms = geoms;
         effect.flyingRev += 1;
     }
 
@@ -108,7 +113,108 @@ KWinComponents.SceneEffect {
         return !!(id && effect.flyingIds[id]);
     }
 
-    function queueWindowFlight(window, fromList, toList) {
+    function setFlightGeom(window, geom) {
+        const id = effect.windowId(window);
+        if (!id) {
+            return;
+        }
+        const geoms = Object.assign({}, effect.flightGeoms);
+        if (geom) {
+            geoms[id] = geom;
+        } else {
+            delete geoms[id];
+        }
+        effect.flightGeoms = geoms;
+        effect.flyingRev += 1;
+    }
+
+    function flightGeomOf(window) {
+        const _ = effect.flyingRev;
+        const id = effect.windowId(window);
+        return (id && effect.flightGeoms[id]) ? effect.flightGeoms[id] : null;
+    }
+
+    function destRootTile(window, desktop) {
+        if (!window || !desktop || !window.output) {
+            return null;
+        }
+        const workspace = KWinComponents.Workspace;
+        if (typeof workspace.rootTile === "function") {
+            return workspace.rootTile(window.output, desktop);
+        }
+        return null;
+    }
+
+    // Per-desktop tiling drops the snap when a window changes desktop.
+    // Do not unmanage() here: that restores the pre-tile (centered) rect.
+    // Wait until the old tile is gone, then put the frame back — and retry
+    // for a few frames because KWin untiles after desktopsChanged.
+    function keepSnapped(window, snap) {
+        if (!window || !snap || !(snap.width > 0) || !(snap.height > 0)) {
+            return;
+        }
+        if (window.minimized || WindowState.isDesktopChrome(window) || WindowState.stuckOnFace(window)) {
+            return;
+        }
+        if (window.move === true || window.resize === true) {
+            return;
+        }
+        if (WindowState.geometryMatches(window, snap, 2)) {
+            return;
+        }
+        const dest = WindowState.primaryDesktop(window.desktops)
+                     || (window.output && typeof KWinComponents.Workspace.currentDesktopForScreen === "function"
+                         ? KWinComponents.Workspace.currentDesktopForScreen(window.output)
+                         : KWinComponents.Workspace.currentDesktop);
+        const root = dest ? effect.destRootTile(window, dest) : null;
+        const tile = WindowState.findMatchingTile(root, snap);
+        if (tile && typeof tile.manage === "function" && window.tile !== tile) {
+            tile.manage(window);
+            if (WindowState.geometryMatches(window, snap, 2)) {
+                return;
+            }
+        }
+        if (window.tile) {
+            return;
+        }
+        window.frameGeometry = Qt.rect(snap.x, snap.y, snap.width, snap.height);
+    }
+
+    function holdSnap(window, snap) {
+        if (!window || !snap) {
+            return;
+        }
+        const id = effect.windowId(window);
+        const next = [];
+        for (let i = 0; i < effect.snapRetries.length; ++i) {
+            if (effect.windowId(effect.snapRetries[i].window) !== id) {
+                next.push(effect.snapRetries[i]);
+            }
+        }
+        next.push({
+            window: window,
+            snap: snap,
+            tries: 0
+        });
+        effect.snapRetries = next;
+        effect.keepSnapped(window, snap);
+        snapRetryTimer.restart();
+    }
+
+    function isHoldingSnap(window) {
+        const id = effect.windowId(window);
+        if (!id) {
+            return false;
+        }
+        for (let i = 0; i < effect.snapRetries.length; ++i) {
+            if (effect.windowId(effect.snapRetries[i].window) === id) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function queueWindowFlight(window, fromList, toList, snap) {
         const fromDesktop = WindowState.primaryDesktop(fromList);
         const toDesktop = WindowState.primaryDesktop(toList);
         if (!window || !fromDesktop || !toDesktop || WindowState.sameDesktop(fromDesktop, toDesktop)) {
@@ -118,6 +224,7 @@ KWinComponents.SceneEffect {
             return;
         }
         const id = effect.windowId(window);
+        const geom = snap || WindowState.captureSnap(window);
         const next = [];
         for (let i = 0; i < effect.flightQueue.length; ++i) {
             if (effect.windowId(effect.flightQueue[i].window) !== id) {
@@ -128,10 +235,12 @@ KWinComponents.SceneEffect {
             window: window,
             fromDesktop: fromDesktop,
             toDesktop: toDesktop,
+            geom: geom,
             at: Date.now()
         });
         effect.flightQueue = next;
         effect.setFlying(window, true);
+        effect.setFlightGeom(window, geom);
         effect.flightToken += 1;
     }
 
@@ -164,18 +273,104 @@ KWinComponents.SceneEffect {
             activity: KWinComponents.Workspace.currentActivity
             windowModel: KWinComponents.WindowModel {}
         }
-        delegate: Connections {
+        delegate: QtObject {
+            id: tracker
             required property var window
-            target: window
             property var lastDesktops: []
+            // Last frame while the window was actually tiled. Never store the
+            // post-untile restore rect here — that is the small centered one.
+            property var snapGeom: null
+
+            function rememberSnap() {
+                if (window && window.tile) {
+                    snapGeom = WindowState.captureSnap(window);
+                }
+            }
+
+            function forgetSnapIfUserUntiled() {
+                if (!window || window.tile || !snapGeom) {
+                    return;
+                }
+                const desks = WindowState.copyDesktops(window.desktops);
+                Qt.callLater(function () {
+                    if (!tracker.window || tracker.window.tile || !tracker.snapGeom) {
+                        return;
+                    }
+                    if (!WindowState.sameDesktopList(desks, tracker.window.desktops)) {
+                        return;
+                    }
+                    if (effect.isHoldingSnap(tracker.window)) {
+                        return;
+                    }
+                    tracker.snapGeom = null;
+                });
+            }
+
+            function snapForMove() {
+                if (window && window.tile) {
+                    rememberSnap();
+                }
+                return snapGeom;
+            }
 
             Component.onCompleted: {
                 lastDesktops = WindowState.copyDesktops(window ? window.desktops : []);
+                rememberSnap();
             }
 
-            function onDesktopsChanged() {
-                effect.queueWindowFlight(window, lastDesktops, window.desktops);
-                lastDesktops = WindowState.copyDesktops(window.desktops);
+            property var windowWatch: Connections {
+                target: tracker.window
+                function onTileChanged() {
+                    if (tracker.window && tracker.window.tile) {
+                        tracker.rememberSnap();
+                    } else {
+                        tracker.forgetSnapIfUserUntiled();
+                    }
+                }
+                function onFrameGeometryChanged() {
+                    tracker.rememberSnap();
+                }
+                function onDesktopsChanged() {
+                    const snap = tracker.snapForMove();
+                    effect.queueWindowFlight(tracker.window, tracker.lastDesktops, tracker.window.desktops, snap);
+                    tracker.lastDesktops = WindowState.copyDesktops(tracker.window.desktops);
+                    effect.holdSnap(tracker.window, snap);
+                }
+            }
+
+            property var desktopWatch: Connections {
+                target: KWinComponents.Workspace
+                function onCurrentDesktopChanged() {
+                    if (!tracker.window) {
+                        return;
+                    }
+                    const desks = tracker.window.desktops;
+                    if (desks && desks.length > 0) {
+                        return;
+                    }
+                    effect.holdSnap(tracker.window, tracker.snapForMove());
+                }
+            }
+        }
+    }
+
+    Timer {
+        id: snapRetryTimer
+        interval: 16
+        repeat: true
+        onTriggered: {
+            const keep = [];
+            for (let i = 0; i < effect.snapRetries.length; ++i) {
+                const item = effect.snapRetries[i];
+                item.tries += 1;
+                effect.keepSnapped(item.window, item.snap);
+                if (!WindowState.geometryMatches(item.window, item.snap, 2) && item.tries < 10) {
+                    keep.push(item);
+                }
+            }
+            effect.snapRetries = keep;
+            if (keep.length === 0) {
+                stop();
             }
         }
     }
