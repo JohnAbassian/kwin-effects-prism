@@ -30,7 +30,7 @@ def main():
             [kwrite, "--file", "kwinrc", "--group", "Effect-prism", "--key", "Peek", str(peek)],
             check=False,
         )
-    qdbus = shutil.which("qdbus6") or shutil.which("qdbus")
+    qdbus = shutil.which("qdbus6") or shutil.which("qdbus-qt6") or shutil.which("qdbus")
     if qdbus:
         subprocess.run(
             [qdbus, "org.kde.KWin", "/Effects", "org.kde.kwin.Effects.reconfigureEffect", "prism"],

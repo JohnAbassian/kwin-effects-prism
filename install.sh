@@ -65,6 +65,8 @@ reload_effect() {
 
 if command -v qdbus6 >/dev/null; then
     reload_effect qdbus6
+elif command -v qdbus-qt6 >/dev/null; then
+    reload_effect qdbus-qt6
 elif command -v qdbus >/dev/null; then
     reload_effect qdbus
 fi

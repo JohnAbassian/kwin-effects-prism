@@ -28,17 +28,27 @@ Prism keeps that hull and adds a **desktop switcher** on top — the Compiz cube
 
 ## Requirements
 
-- KDE Plasma 6 / KWin
-- `qt6-quick3d` (the official Cube effect uses the same)
+- KDE Plasma 6 / KWin (Wayland)
+- Qt 6 Quick 3D
 - At least 2 virtual desktops (3+ looks like a prism; 2 is a 180° flip)
 
-On Arch/CachyOS:
+On Fedora:
+
+```sh
+sudo dnf install qt6-qtquick3d qt6-qttools
+```
+
+On Arch / CachyOS:
 
 ```sh
 sudo pacman -S qt6-quick3d
 ```
 
+On Debian / Ubuntu:
 
+```sh
+sudo apt install qml6-module-qtquick3d qt6-tools-dev-tools
+```
 
 ## Install
 
@@ -46,11 +56,15 @@ sudo pacman -S qt6-quick3d
 ./install.sh
 ```
 
-Or:
+*(The installer automatically detects `qdbus6`, `qdbus-qt6` on Fedora, or `qdbus` to reload KWin and bind shortcuts).*
+
+Or manually:
 
 ```sh
 kpackagetool6 --type KWin/Effect --install package/
-qdbus6 org.kde.KWin /KWin reconfigure
+kpackagetool6 --type KWin/Script --install script/
+# Use qdbus-qt6 on Fedora, or qdbus6 on Arch/Debian:
+qdbus6 org.kde.KWin /KWin reconfigure 2>/dev/null || qdbus-qt6 org.kde.KWin /KWin reconfigure
 ```
 
 Upgrade after changes with `--upgrade` instead of `--install`.
